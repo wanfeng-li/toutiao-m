@@ -1,10 +1,10 @@
-// 封装请求模块
-import axios from 'axios'
+// 封装 axios 请求模块
+
+import axios from "axios"
 
 const request = axios.create({
-    baseURL: 'http://ttapi.research.itcast.cn' // 接口基准路径
+    baseURL: "http://ttapi.research.itcast.cn/" // 基础路径
 })
-
 
 // 请求拦截器
 
