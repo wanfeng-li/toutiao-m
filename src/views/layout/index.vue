@@ -20,7 +20,7 @@
       </van-tabbar-item>
       <van-tabbar-item icon="home-o" to="/my">
         <i slot="icon" class="toutiao toutiao-wode"></i>
-        <span>我的</span>
+        <span>{{!!$store.state.user?'我的':'未登录'}}</span>
       </van-tabbar-item>
     </van-tabbar>
     <!-- /标签导航栏 -->
