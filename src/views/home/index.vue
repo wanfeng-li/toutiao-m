@@ -2,15 +2,7 @@
   <div class="home-container">
     <!-- 导航栏 -->
     <van-nav-bar class="page-nav-bar" fixed>
-      <van-button
-        size="small"
-        slot="title"
-        type="info"
-        round
-        class="search-nav"
-        icon="search"
-        >搜索</van-button
-      >
+      <van-button size="small" slot="title" type="info" round class="search-nav" icon="search" to="/search">搜索</van-button>
     </van-nav-bar>
     <!-- /导航栏 -->
 
@@ -20,33 +12,22 @@
       通过 swipeable 属性可以开启滑动切换标签页。
       通过 animated 属性可以开启切换标签内容时的转场动画
      -->
-    <van-tabs class="channel-tabs" v-model="active" animated swipeable>
-      <van-tab
-        :title="channel.name"
-        v-for="channel in channels"
-        :key="channel.id"
-      >
+    <van-tabs class="channel-tabs" v-model="active" animated swipeable swipe-threshold="4">
+      <van-tab :title="channel.name" v-for="channel in channels" :key="channel.id">
         <!-- 文章列表 -->
         <my-article :channel="channel"></my-article>
         <!-- /文章列表 -->
       </van-tab>
       <div slot="nav-right" class="plashodel"></div>
-      <div slot="nav-right" class="hamburger-btn" @click="isChannel">
+      <div slot="nav-right" class="hamburger-btn" @click="isChannelEditShow = true">
         <i class="toutiao toutiao-gengduo"></i>
       </div>
     </van-tabs>
     <!-- /频道列表 -->
 
     <!-- 频道弹出层 -->
-    <van-popup
-      round
-      closeable
-      v-model="isChannelEditShow"
-      position="bottom"
-      close-icon-position="top-left"
-      :style="{ height: '90%' }"
-    >
-      <channel-edit :myChannels="channels" :active="active"></channel-edit>
+    <van-popup round closeable v-model="isChannelEditShow" position="bottom" close-icon-position="top-left" :style="{ height: '95%' }">
+      <channel-edit :myChannels="channels" :active="active" @updata-active="onEditActive"></channel-edit>
     </van-popup>
     <!-- /频道弹出层 -->
   </div>
@@ -56,40 +37,56 @@
 import { getUserChannel } from '@/api/user'
 import ArticleList from './components/article-list'
 import ChannelEdit from './components/channel-edit'
+import { getItem } from '@/utils/storage'
+import { mapState } from 'vuex'
 export default {
   name: '',
   data() {
     return {
       active: 0, // 当前选中文章的索引
       channels: [], // 文章数据列表
-      isChannelEditShow: true // 编辑频道弹框的显示与否
+      isChannelEditShow: false, // 编辑频道弹框的显示与否
     }
   },
   components: {
     'my-article': ArticleList,
-    ChannelEdit
+    ChannelEdit,
   },
   props: {},
-  computed: {},
+  computed: {
+    ...mapState(['user']),
+  },
   watch: {},
   created() {
     this.loadUserChannel()
   },
   mounted() {},
   methods: {
+    // 获取用户自己的频道
     async loadUserChannel() {
       try {
-        const { data } = await getUserChannel()
-        // console.log(data.data)
-        this.channels = data.data.channels
+        // 优化 默认的频道和用户自己的频道都是同一个接口
+        const localChannel = getItem('TOUTIAO_CHANNEL')
+        // 已登录 或者 本地没有数组
+        if (this.user || !localChannel) {
+          // 1. 已登录 获取用户自己的频道
+          const { data } = await getUserChannel()
+          this.channels = data.data.channels
+        } else {
+          this.channels = localChannel
+        }
+        // 2. 未登录 从本地存储里面取数据
+        // 3. 如果本地有数据 就取出来
+        // 4. 本地没有数据 就获取默认的数据
       } catch (err) {
         // console.log(err)
       }
     },
-    isChannel() {
-      this.isChannelEditShow = true
-    }
-  }
+    onEditActive(index, isChannelEditShow) {
+      this.active = index
+      this.isChannelEditShow = isChannelEditShow
+    },
+  },
 }
 </script>
 

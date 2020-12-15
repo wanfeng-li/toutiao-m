@@ -1,29 +1,11 @@
 <template>
   <div class="channel-edit">
     <van-cell :border="false" title="我的频道" size="large">
-      <van-button
-        class="edit-btn"
-        plain
-        type="danger"
-        size="mini"
-        round
-        @click="isEdit = !isEdit"
-        >{{ isEdit ? '完成' : '编辑' }}</van-button
-      >
+      <van-button class="edit-btn" plain type="danger" size="mini" round @click="isEdit = !isEdit">{{ isEdit ? '完成' : '编辑' }}</van-button>
     </van-cell>
     <van-grid :gutter="10" class="my-grid">
-      <van-grid-item
-        class="grid-item"
-        :class="{ active: index == active }"
-        v-for="(channels, index) in myChannels"
-        :key="index"
-        @click="onRemoveChannel(index)"
-      >
-        <van-icon
-          v-if="isEdit && !fiexChannels.includes(channels.id)"
-          slot="icon"
-          name="clear"
-        ></van-icon>
+      <van-grid-item class="grid-item" :class="{ active: index == active }" v-for="(channels, index) in myChannels" :key="index" @click="onRemoveChannel(channels,index)">
+        <van-icon v-if="isEdit && !fiexChannels.includes(channels.id)" slot="icon" name="clear"></van-icon>
         <span slot="text">{{ channels.name }}</span>
       </van-grid-item>
     </van-grid>
@@ -31,70 +13,56 @@
     <!-- 频道推荐 -->
     <van-cell :border="false" title="频道推荐" size="large"> </van-cell>
     <van-grid :gutter="10" class="edit-grid">
-      <van-grid-item
-        class="grid-item"
-        icon="plus"
-        v-for="item in recommendChannels"
-        :key="item.id"
-        :text="item.name"
-        @click="onAddChannel(item)"
-      />
+      <van-grid-item class="grid-item" icon="plus" v-for="item in recommendChannels" :key="item.id" :text="item.name" @click="onAddChannel(item)" />
     </van-grid>
   </div>
 </template>
 
 <script>
-import { getAllChannel } from '@/api/channel'
+import {
+  getAllChannel,
+  addUserChannel,
+  deleteUserChannel,
+  // resteUserChannel,
+} from '@/api/channel'
+import { mapState } from 'vuex'
+import { setItem } from '@/utils/storage'
 export default {
   name: '',
   data() {
     return {
       allChannel: [], // 所有频道列表
       isEdit: false,
-      fiexChannels: [0] //固定频道
+      fiexChannels: [0], //固定频道
     }
   },
   components: {},
   props: {
     myChannels: {
       type: Array,
-      required: true
+      required: true,
     },
     active: {
       type: Number,
-      required: true
-    }
+      required: true,
+    },
   },
   computed: {
+    ...mapState(['user']),
     // 未被选择的频道列表
-    // recommendChannels() {
-    //   const channels = this.allChannel
-    //   this.allChannel.forEach((item, index) => {
-    //     this.myChannels.forEach((item2, index2) => {
-    //       if (item.id == item2.id) {
-    //         console.log(item.id, item.name)
-    //         channels.splice(index, 1)
-    //         return
-    //       }
-    //     })
-    //   })
-    //   return channels
-    // }
-
     // 第二种
     recommendChannels() {
-      return this.allChannel.filter(channel => {
-        return !this.myChannels.find(myChannel => {
+      return this.allChannel.filter((channel) => {
+        return !this.myChannels.find((myChannel) => {
           return myChannel.id === channel.id
         })
       })
-    }
+    },
   },
   watch: {},
   created() {
     // 获取所有频道列表
     this.loadAllChannel()
-    console.log(this.allChannel)
   },
   mounted() {},
   methods: {
@@ -102,25 +70,71 @@ export default {
     async loadAllChannel() {
       try {
         const { data } = await getAllChannel()
-        // console.log(data)
         this.allChannel = data.data.channels
-        console.log(this.allChannel)
       } catch (err) {
         // console.log(err)
         this.$toast('数据获取失败')
       }
     },
     // 添加频道到我的频道
-    onAddChannel(channel) {
+    async onAddChannel(channel) {
+      // 操作视图
       this.myChannels.push(channel)
+
+      // 数据持久化
+      if (this.user) {
+        // 登录下存储到服务器
+        try {
+          await addUserChannel({
+            id: channel.id, // 频道id
+            seq: this.myChannels.length, // 序号
+          })
+          this.$toast('添加频道成功')
+        } catch (err) {
+          this.$toast('添加频道失败')
+        }
+      } else {
+        // 未登录下存到本地
+        setItem('TOUTIAO_CHANNEL', this.myChannels)
+      }
     },
     // 删除当前点击的我的频道
-    onRemoveChannel(index) {
-      if (this.isEdit && !this.fiexChannels.includes(index)) {
+    onRemoveChannel(channel, index) {
+      // 如果是 true 就是编辑状态
+      if (this.isEdit) {
+        // 如果删除的是固定频道 则return
+        if (this.fiexChannels.includes(index)) {
+          return
+        }
         this.myChannels.splice(index, 1)
+        // 如果删的是前面的
+        if (index < this.active) {
+          this.$emit('updata-active', this.active - 1, true)
+        }
+        // 处理数据持久化
+        this.deleteChannel(channel.id)
+      } else {
+        // 切换频道状态
+        // this.active = index
+        this.$emit('updata-active', index, false)
       }
-    }
-  }
+    },
+    // 删除指定频道
+    async deleteChannel(channelId) {
+      if (this.user) {
+        // 存储到线上
+        try {
+          await deleteUserChannel(channelId)
+          this.$toast('移除频道成功')
+        } catch (err) {
+          this.$toast('移除频道失败')
+        }
+      } else {
+        // 未登录下存到本地
+        setItem('TOUTIAO_CHANNEL', this.myChannels)
+      }
+    },
+  },
 }
 </script>
 

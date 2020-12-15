@@ -1,13 +1,27 @@
 <template>
-  <div class='article-list'>
-    <van-pull-refresh v-model="isRefreshLoading" :success-text="refreshSuccessText" @refresh="onRefresh">
-      <van-list v-model="loading" :finished="finished" finished-text="没有更多了" @load="onLoad" :error.sync="error" error-text="请求失败，点击重新加载">
+  <div class="article-list">
+    <van-pull-refresh
+      v-model="isRefreshLoading"
+      :success-text="refreshSuccessText"
+      @refresh="onRefresh"
+    >
+      <van-list
+        v-model="loading"
+        :finished="finished"
+        finished-text="没有更多了"
+        @load="onLoad"
+        :error.sync="error"
+        error-text="请求失败，点击重新加载"
+      >
         <!-- <van-cell  :title="article.title" /> -->
-        <article-item v-for="(article,index) in list" :key="index" :article="article"></article-item>
+        <article-item
+          v-for="(article, index) in list"
+          :key="index"
+          :article="article"
+        ></article-item>
       </van-list>
     </van-pull-refresh>
   </div>
-
 </template>
 
 <script>
@@ -23,17 +37,17 @@ export default {
       timestamp: null, // 上一页历史请求的时间戳
       error: false, // 默认不显示加载失败
       isRefreshLoading: false, // 下拉刷新 加载中的显示 false默认不显示
-      refreshSuccessText: '刷新成功',
+      refreshSuccessText: '刷新成功'
     }
   },
   components: {
-    'article-item': ArticleItem,
+    'article-item': ArticleItem
   },
   props: {
     channel: {
       type: Object,
-      required: true,
-    },
+      required: true
+    }
   },
   computed: {},
   watch: {},
@@ -47,7 +61,7 @@ export default {
         const { data } = await getArticles({
           channel_id: this.channel.id, // 频道id
           timestamp: this.timestamp || Date.now(), // 时间戳，请求新的推荐数据传当前的时间戳，请求历史推荐传指定的时间戳
-          with_top: 1, // 是否包含置顶，进入页面第一次请求时要包含置顶文章，1-包含置顶，0-不包含
+          with_top: 1 // 是否包含置顶，进入页面第一次请求时要包含置顶文章，1-包含置顶，0-不包含
         })
 
         // 测试错误提示是否绑定成功
@@ -83,7 +97,7 @@ export default {
         const { data } = await getArticles({
           channel_id: this.channel.id, // 频道id
           timestamp: Date.now(), // 下拉刷新 获取最新的数据 传入当前的时间戳
-          with_top: 1, // 是否包含置顶，进入页面第一次请求时要包含置顶文章，1-包含置顶，0-不包含
+          with_top: 1 // 是否包含置顶，进入页面第一次请求时要包含置顶文章，1-包含置顶，0-不包含
         })
 
         // 测试错误提示是否绑定成功
@@ -101,15 +115,15 @@ export default {
         this.isRefreshLoading = false // 关闭下拉刷新的 loading 状态
         this.refreshSuccessText = `刷新失败`
       }
-    },
-  },
+    }
+  }
 }
 </script>
 
-<style scoped lang='less'>
+<style scoped lang="less">
 .article-list {
   //vh 根据浏览器视图 改变大小 不受父元素影响
-  height: 79vh;
-  overflow-y: auto;
+  height: calc(100vh - 180px - 100px);
+  overflow: auto;
 }
 </style>
